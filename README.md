@@ -2,7 +2,7 @@
 [![license](https://img.shields.io/github/license/ditatompel/Katanya-Internet-Positif.svg)](LICENSE)
 [![Website](https://img.shields.io/website-up-down-green-red/http/trustpositif.kominfo.go.id.svg)](http://trustpositif.kominfo.go.id)
 
-`Katanya Internet Positif` adalah script sederhana untuk mengambil data blacklist dari trustpositif.kominfo.go.id, melakukan filterisasi kembali untuk duplikasi domain atau alamat wildcatd IP yang tidak valid, dan melakukan convert untuk konfigurasi BIND DNS zone blacklist.
+`Katanya Internet Positif` adalah script sederhana untuk mengambil data blacklist dari trustpositif.kominfo.go.id, melakukan filterisasi kembali untuk duplikasi domain atau alamat wildcatd IP yang tidak valid, dan melakukan convert untuk konfigurasi BIND DNS zone blacklist. Untuk informasi lebih lanjut, baca [halaman Wiki](https://github.com/ditatompel/Katanya-Internet-Positif/wiki).
 
 ## Petunjuk Penggunaan
 Script ini dapat dijalankan menggunakan Python 2.7 atau lebih.
