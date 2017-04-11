@@ -15,4 +15,4 @@ ke `public` branch
 diakses
 * Buat config generator untuk Squid
 * Abaikan file kosong dari trustpositif.kominfo.go.id
-* Buat program ini dapat dijalankan pada Python 2.6
+* ~Buat program ini dapat dijalankan pada Python 2.6~
