@@ -1,84 +1,60 @@
-# Internet Positif Kominfo
+# Katanya Internet Positif
+[![license](https://img.shields.io/github/license/ditatompel/Katanya-Internet-Positif.svg)](LICENSE)
 [![Website](https://img.shields.io/website-up-down-green-red/http/trustpositif.kominfo.go.id.svg)](http://trustpositif.kominfo.go.id)
-[![license](https://img.shields.io/github/license/ditatompel/Katanya-Internet-Positif.svg)]()
 
-## Pendahuluan
-    Anda sangat diundang untuk berpartisipasi dalam pengembangan terhadap basis
-    data TRUST+™ Positif yang saat ini telah ada.
-    - trustpositif.kominfo.go.id
+`Katanya Internet Positif` adalah script sederhana untuk mengambil data blacklist dari trustpositif.kominfo.go.id, melakukan filterisasi kembali untuk duplikasi domain atau alamat wildcatd IP yang tidak valid, dan melakukan convert untuk konfigurasi BIND DNS zone blacklist. Untuk informasi lebih lanjut, baca [halaman Wiki](https://github.com/ditatompel/Katanya-Internet-Positif/wiki).
 
-Trust+ membagi data domain menjadi beberapa kategori :
-* database
-    * blacklist
-        * kajian
-        * pengaduan
-    * whitelist
-* db_porn
+## Petunjuk Penggunaan
+Script ini dapat dijalankan menggunakan Python 2.7 atau lebih.
 
-Dari list diatas, pada sisi `database/blacklist` terdapat kategori `pengaduan`
-yang *mungkin* berasal dari pengaduan masyarakat. kategori pengaduan tersebut
-berisi sejumlah file, antara lain :
-* domains
-* domain.b4.asterisk
-* domain.old
-* domain.save.[0-9]+
-* dst.. (Mungkin ada yang bisa bantu **memperkenalkan** yang namanya *Revision
-    Control System* atau *Version Control System* ;p)
+Untuk yang masih menggunakan Python 2.6, masih dapat menjalankan script ini
+dengan menginstall `python-argparse` sebagai module tambahan.
 
-Kemudian masih pada sisi `database/blacklist` terdapat kategori lain, yaitu
-`kajian` yang banyak `ditafsirkan` sebagai hasil kajian oleh tim Trust+ dari
-kategori `pengaduan` masyarakat.
+### 1st run / update RAW_DATA
+Untuk yang **pertama kali menjalankan script ini** (atau ingin melakukan update RAW_DATA), gunakan opsi `-f` atau `--fetch` untuk
+mengambil RAW_DATA dari trustpositif.kominfo.go.id
 
-Selanjuatnya ada lagi yang namanya `db_porn` yang **pastinya** merupakan list
-domain-domain yang berbau pornografi.
+    $ python ./internetpositif.py --fetch
 
-Dan terakhir `database/whitelist` yang saat ini isinya (kosong ?)
+### Bersihkan duplikasi Data / list alamat IP yang tidak valid
+Untuk membersihkan duplikasi data, menghapus alamat IP yang tidak valid, gunakan opsi `-c` atau `--clean`
 
-### Banyaknya Duplikasi Data
-Dari data blacklist `kajian` sendiri pun masih terdapat beberapa domain yang
-double, misalnya domain sextubebdsm.com terdapat pada file
-`database/blacklist/kajian/domains` line 1225 dan line 1229
-##### Linux | GNU
-`sort <FILE> | uniq -cd | sort -nr`
-##### OSX | BSD
-`sort <FILE> | uniq -c | grep -v '^ *1 ' | sort -nr`
+    $ python ./internetpositif.py -c
 
-### Domain tidak valid
-Banyak domain yang terdapat pada list diatas yang tidak lagi valid. Misalnya
-domain sudah habis, http service tidak dapat diakses, atau format domain yang
-tidak valid.
+### BIND zone file generator
+Untuk membuat konfigurasi BIND blacklist zone, gunakan opsi `-g` atau `--generate` dengan opsi tambahan `-n` / `--nameserver`, `-e` / `--email`, `-d` / `--domain`
 
 Misalnya :
-##### Tidak memiliki TLD
-domain `shesafreak.` atau `ladyboynancy.` tidak memiliki TLD.
-##### 2 buah domain pada 1 line
-`db_porn/domains` line 900.
-##### Wildcard alamat IP
-Pemblokiran alamat IP mengunakan asterisk seperti `*.200.10.104.174` menjadikan alamat IP tidak valid.
 
-Jika asal melakukan convert menggunakan cli. Misalnya :
+    $ python ./internetpositif.py --generate -n ns.domain.com -e admin.domain.com -d blokir.domain.com
+akan menghasilkan file :
 
-`$ awk '{print $1" IN CNAME blokir.domain.com."}' domains >> /var/named/trust-positif.db`
+    $TTL 86400      ; 1 day
+    @   IN      SOA ns.domain.com. admin.domain.com. (
+                                    2017040503 ; serial
+                                    3600       ; refresh (1 hour)
+                                    120        ; retry (2 minute)
+                                    604800     ; expire (1 week)
+                                    86400      ; minimum (1 day)
+                                    )
+            IN      NS      ns.domain.com.
+    domain.yang.diblokir.com IN CNAME blokir.domain.com.
+    domain.lainnya.yang.diblokir.net IN CNAME blokir.domain.com.
+    [dan seterusnya]
 
-Akan menjadi :
+### Jalankan semua dalam 1 baris
+    $ python ./internetpositif.py -cfg -n=ns.domain.com --email=admin.domain.com -d blokir.domain.com
 
-    [record zone lainnya]
-    shesafreak. IN CNAME blokir.domain.com.
-    ladyboynancy. IN CNAME blokir.domain.com.
-    krucil.net adultjoy.net IN CNAME blokir.domain.com.
-    [record zone lainnya]
-Hal tersebut dapat menyebabkan service DNS **tidak dapat berjalan**.
+### Default value
+Opsi tertentu memiliki default value, seperti :
+* `-n` / `--nameserver` = `localhost.local`
+* `-e` / `--email` = `administrator.localhost.local`
+* `-d` / `--domain` = `internetbaik.wds.co.id`
 
-Sebaiknya domain yang sudah tidak valid dihilangkan dari list sehingga lebih
-efektif dan efisien.
+Informasi lebih lanjut
 
-### Kurang Bijak
-Pemblokiran berbasis alamat IP menurut author tidaklah bijak.
+    $ python ./internetpositif.py
 
-## Penggunaan
-`$ python ./internetpositif.py`
-
-    optional arguments:
     -h, --help            show this help message and exit
     -f, --fetch           Ambil data blacklist dari trustpositif.kominfo.go.id
     -c, --clean           Bersihkan duplikasi data dari
@@ -94,19 +70,19 @@ Pemblokiran berbasis alamat IP menurut author tidaklah bijak.
     -d DOMAIN, --domain DOMAIN
                         CNAME domain tujuan. Default internetbaik.wds.co.id
 
-Contoh :
 
-    $ python ./internetpositif.py -f -c
+## Struktur File
+Script akan membuat folder tertentu sesuai dengan opsi perintah yang diberikan.
 
-atau
-
-    $ python ./internetpositif.py -cfg -n ns.domain.com -e admin.domain.com -d blokir.domain.com
-
-### Struktur File
-    ./RAW_DATA/ (data asli yang didapat dari trustpositif.kominfo.go.id )
-    ./DATA/ (hasil list domain yang telah dibersihkan dari folder ./RAW_DATA/)
-    ./conf/ (hasil convert named zone yang didapat dari folder ./DATA/)
+| Perintah | Alias | Folder | Keterangan |
+|---|---|---|---|
+| -f | --fetch | ./RAW_DATA/ | data asli yang didapat dari trustpositif.kominfo.go.id |
+| -c | --clean | ./DATA/ | hasil list domain yang telah dibersihkan dari folder ./RAW_DATA/ |
+| -g | --generate | ./conf/ | hasil convert named zone yang didapat dari folder ./DATA/ |
 
 ## Berkontribusi
 Lihat [CONTRIBUTING.md](CONTRIBUTING.md) untuk informasi lebih detail mengenai
 cara berkontribusi pada repositori ini.
+
+## Lisensi
+[MIT License](LICENSE)
