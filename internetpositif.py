@@ -5,7 +5,7 @@ try:
 except ImportError:
     sys.exit('Silahkan install `python-argparse` atau gunakan python >= 2.7 untuk menjalankan script ini')
 import os, re, urllib2, json
-ver = '1.0.4'
+ver = '1.0.5'
 prog_desc = "Simple Kominfo Trust / Internet Positif db fetcher written in Python"
 base_url = 'http://trustpositif.kominfo.go.id/files/downloads/index.php'
 path_lists = 'path.json'
@@ -14,35 +14,43 @@ clean_data = 'DATA'
 cnf_dir = 'conf'
 
 def halo() :
-    print "\n" + "-+-"*23 + "\n\tPython Kominfo Trust / Intetnet Positif Fetcher " + str(ver)
+    print "\n" + "-+-"*26 + "\n\tPython Kominfo Trust / Intetnet Positif Fetcher " + str(ver)
     print "\t" + prog_desc
     print "\tby ditatompel <svcadm@ditatompel.com> <christian.dita@wds.co.id>"
-    print "-+-"*23+"\n"
+    print "\thttps://devilzc0de.org/forum/user-11541.html"
+    print "-+-"*26+"\n"
 
 def clean_domain(government):
     validate_ip = re.compile("^(\*\.)\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
     for censorship in government.keys():
         dir_location = dl_dir + '/' + censorship + '/'
+        dest_location = clean_data + '/' + censorship + '/'
         if os.path.isdir(dir_location):
             for filename in os.listdir(dir_location):
                 lines_seen = set()
-                if not os.path.exists(os.path.dirname(clean_data + '/' + censorship + '/')):
-                    os.makedirs(os.path.dirname(clean_data + '/' + censorship + '/'))
-                outfile = open(clean_data + '/' + censorship + '/' + filename, "wb")
-                outfile.write('')
+                to_write = []
+                if not os.path.exists(os.path.dirname(dest_location)):
+                    os.makedirs(os.path.dirname(dest_location))
                 for line in open(dir_location + filename, "rb"):
-                    # added .replace(' ', "\n") because kominfo source data contain 2 domains in 1 line -_-"
+                    # added .replace(' ', "\n") because kominfo source data
+                    # contain 2 domains in 1 line -_-"
                     line = line.strip().replace("\r", '').replace(' ', "\n")
-                    # discard invalid domain like shesafreak. , ladyboynancy. or invalid wildcard ip addr like *.200.10.104.174
-                    if line.endswith('.\n') or validate_ip.match(line):
+                    # discard invalid domain like shesafreak. , ladyboynancy.
+                    # or invalid wildcard ip addr like *.200.10.104.174
+                    if line.endswith('.') or validate_ip.match(line):
                         print 'Domain / alamat IP tidak valid ditemukan : ' + line
                     else:
                         if line not in lines_seen:
-                            outfile.write(line + "\n")
                             lines_seen.add(line)
+                            to_write.append(line)
                         else:
                             print 'Data kembar ditemukan : ' + line
-                outfile.close()
+                if len(to_write):
+                    outfile = open(dest_location + filename, "wb")
+                    for domain in to_write:
+                        outfile.write(domain + "\n")
+                    outfile.close()
+                    print str(len(to_write)) + ' domain ditulis di ' + dest_location + filename
         else:
             print 'Direktori ' + dir_location + ' tidak ditemukan'
 
@@ -81,23 +89,33 @@ $TTL 86400      ; 1 day
     print 'Memproses pembuatan config BIND...'
     # found *.{ipaddr} on blacklist. definitely not valid
     ipaddr_regex = re.compile("^(\*\.)?\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
+    lines_seen = set()
+    to_write = []
     for censorship in government.keys():
         dir_location = clean_data + '/' + censorship + '/'
         if os.path.isdir(dir_location):
             for filename in os.listdir(dir_location):
                 if filename == 'domains.txt':
+                    print 'Menulis konfigurasi BIND ke ' + cnf_dir + '/' + censorship + '_named.conf'
                     outfile = open(cnf_dir + '/' + censorship + '_named.conf', "wb")
                     outfile.write(head)
                     for line in open(dir_location + filename, "rb"):
                         record = line.replace("\r",'').replace("\n", '')
-                        # blocking the entry ip address is not wise sir!
-                        # remove if condition below if you want to include the ip addresses!
-                        # don't forget to fix indentation if you remove if condition below!
                         if not ipaddr_regex.match(record):
                             outfile.write(record + " IN CNAME " + domain + ".\n")
+                            if record not in lines_seen:
+                                lines_seen.add(line)
+                                to_write.append(line)
                     outfile.close()
         else:
             print 'Direktori ' + dir_location + ' tidak ditemukan'
+    if len(to_write):
+        outfile = open(cnf_dir + '/semua_blacklist_named.conf', "wb")
+        outfile.write(head)
+        for data in to_write:
+            outfile.write(data.replace("\r",'').replace("\n", '') + " IN CNAME " + domain + ".\n")
+        outfile.close()
+        print str(len(to_write)) + ' domain ditulis di ' + cnf_dir + '/semua_blacklist_named.conf'
 
 if __name__ == "__main__":
     if not os.path.isfile(path_lists):
